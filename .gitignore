@@ -7,3 +7,5 @@ server.log
 5e-database/
 venv/
 .venv/
+*.db
+mcp_stderr.txt

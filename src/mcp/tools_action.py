@@ -87,9 +87,20 @@ def game_action(session_id: int, action_type: str, params: str = "{}") -> str:
             dc_text = f" (DC {item['dc']})" if item.get("dc") else ""
             lines.append(f"  Found {item['type']}: {item.get('name', item.get('description', '?'))}{dc_text}")
 
-    # State changes
+    # State changes — things that have changed in the current scene
+    scene = context.get("scene", {})
+    scene_changes = scene.get("state_changes", [])
+    if scene_changes:
+        lines.append("\n**Scene State Changes (narrate these — the scene has changed):**")
+        for change in scene_changes:
+            lines.append(f"  - {change}")
+
+    dead = scene.get("dead_npcs", [])
+    if dead:
+        lines.append(f"**Dead NPCs (do NOT describe as alive):** {', '.join(dead)}")
+
+    # Scene transition
     if result.scene_changed:
-        scene = context.get("scene", {})
         lines.append(f"\n**New Scene: {scene.get('name', '?')}**")
         lines.append(scene.get("description", ""))
 

@@ -57,6 +57,7 @@ class AdventureNPC:
     inventory: list[dict] = field(default_factory=list)      # If merchant
     monster_index: str = ""      # SRD monster index if they can fight
     alive: bool = True
+    dialogue_by_flag: dict = field(default_factory=dict)  # flag -> list of hints when flag is set
 
 
 @dataclass
@@ -81,6 +82,7 @@ class SceneEncounter:
     sets_flag: str = ""          # Flag set when encounter completes
     xp_reward: int = 0
     loot: list[dict] = field(default_factory=list)
+    npcs_killed: list[str] = field(default_factory=list)  # NPC IDs to mark dead when encounter completes
 
 
 @dataclass
@@ -221,15 +223,27 @@ def get_scene_context(adventure: Adventure, scene_id: str, flags: dict) -> dict:
 
     # Filter NPCs — only living ones present in this scene
     present_npcs = []
+    dead_npcs = []
     for npc_id in scene.npcs:
         npc = adventure.npcs.get(npc_id)
-        if npc and npc.alive:
-            present_npcs.append({
-                "name": npc.name,
-                "description": npc.description,
-                "disposition": npc.disposition,
-                "dialogue_hints": npc.dialogue_hints,
-            })
+        if not npc:
+            continue
+        # Check if NPC was killed (flag-based, not in-memory)
+        if flags.get(f"npc_{npc_id}_dead"):
+            dead_npcs.append(npc.name)
+            continue
+        if not npc.alive:
+            dead_npcs.append(npc.name)
+            continue
+        present_npcs.append({
+            "id": npc_id,
+            "name": npc.name,
+            "description": npc.description,
+            "disposition": npc.disposition,
+            "dialogue_hints": npc.dialogue_hints,
+            "knows_about": npc.knows_about,
+            "dialogue_by_flag": getattr(npc, 'dialogue_by_flag', {}),
+        })
 
     # Filter items by flags (and exclude hidden ones from description)
     visible_items = []
@@ -274,6 +288,19 @@ def get_scene_context(adventure: Adventure, scene_id: str, flags: dict) -> dict:
                 "narrative": event.narrative,
             })
 
+    # Build state changes — things that have changed since the scene was first entered
+    state_changes = []
+    for name in dead_npcs:
+        state_changes.append(f"{name} has been killed")
+    for enc in scene.encounters:
+        flag_key = f"encounter_{enc.id}_complete"
+        if flags.get(flag_key):
+            state_changes.append(f"Encounter '{enc.id}' completed: {enc.description}")
+    for event in scene.events:
+        flag_key = f"event_{event.id}_done"
+        if flags.get(flag_key):
+            state_changes.append(f"Event completed: {event.description}")
+
     return {
         "scene_id": scene.id,
         "name": scene.name,
@@ -283,9 +310,11 @@ def get_scene_context(adventure: Adventure, scene_id: str, flags: dict) -> dict:
         "lighting": scene.lighting,
         "exits": available_exits,
         "npcs": present_npcs,
+        "dead_npcs": dead_npcs,
         "items": visible_items,
         "pending_encounters": pending_encounters,
         "active_events": active_events,
+        "state_changes": state_changes,
         "rest_allowed": scene.rest_allowed,
     }
 

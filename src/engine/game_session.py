@@ -310,13 +310,90 @@ class GameEngine:
 
     def _handle_look(self, params: dict) -> ActionResult:
         """Handle examining the current scene or a specific thing."""
-        target = params.get("target", "")
+        target = params.get("target", "").lower()
         context = self.get_current_scene_context()
+        flags = self.get_flags()
+
+        if target:
+            # Try to match target to an NPC
+            for npc in context.get("npcs", []):
+                if target in npc["name"].lower():
+                    return ActionResult(
+                        action_type=ActionType.LOOK,
+                        success=True,
+                        narrative_context=(
+                            f"Player examines {npc['name']}.\n"
+                            f"Description: {npc['description']}\n"
+                            f"Disposition: {npc['disposition']}"
+                        ),
+                    )
+
+            # Try dead NPCs
+            for name in context.get("dead_npcs", []):
+                if target in name.lower():
+                    return ActionResult(
+                        action_type=ActionType.LOOK,
+                        success=True,
+                        narrative_context=f"Player examines the body of {name}. They are dead.",
+                    )
+
+            # Try items
+            for item in context.get("items", []):
+                if target in item["name"].lower():
+                    return ActionResult(
+                        action_type=ActionType.LOOK,
+                        success=True,
+                        narrative_context=f"Player examines {item['name']}. {item.get('description', '')}",
+                    )
+
+            # Try exits
+            for exit in context.get("exits", []):
+                if target in exit.get("direction", "").lower() or target in exit.get("description", "").lower():
+                    locked = " It appears to be locked." if exit.get("locked") else ""
+                    return ActionResult(
+                        action_type=ActionType.LOOK,
+                        success=True,
+                        narrative_context=f"Player examines the {exit['direction']} exit. {exit['description']}{locked}",
+                    )
+
+            # No match — still describe the scene with the target noted
+            return ActionResult(
+                action_type=ActionType.LOOK,
+                success=True,
+                narrative_context=f"Player looks at '{target}' but nothing specific stands out. Scene: {context.get('description', '')}",
+            )
+
+        # General look — build a rich overview
+        parts = [f"Player looks around the area."]
+        parts.append(f"Scene: {context.get('description', '')}")
+
+        state_changes = context.get("state_changes", [])
+        if state_changes:
+            parts.append(f"Changes since arrival: {'; '.join(state_changes)}")
+
+        dead = context.get("dead_npcs", [])
+        if dead:
+            parts.append(f"Dead: {', '.join(dead)}")
+
+        npcs = context.get("npcs", [])
+        if npcs:
+            parts.append(f"NPCs present: {'; '.join(n['name'] + ' (' + n['disposition'] + '): ' + n['description'] for n in npcs)}")
+
+        items = context.get("items", [])
+        if items:
+            parts.append(f"Visible items: {', '.join(i['name'] for i in items)}")
+
+        exits = context.get("exits", [])
+        if exits:
+            parts.append(f"Exits: {'; '.join(e['direction'] + ': ' + e.get('description', '') for e in exits)}")
+
+        if context.get("ai_notes"):
+            parts.append(f"[DM Notes: {context['ai_notes']}]")
 
         return ActionResult(
             action_type=ActionType.LOOK,
             success=True,
-            narrative_context=f"The player looks around{' at ' + target if target else ''}. Scene: {context.get('description', '')}",
+            narrative_context="\n".join(parts),
         )
 
     def _handle_search(self, params: dict) -> ActionResult:
@@ -379,7 +456,9 @@ class GameEngine:
         if not scene:
             return ActionResult(action_type=ActionType.TALK, success=False, error="No current scene")
 
+        flags = self.get_flags()
         npc_data = None
+        matched_npc_id = None
         for npc_id in scene.npcs:
             npc = self.adventure.npcs.get(npc_id)
             if npc and (
@@ -388,6 +467,7 @@ class GameEngine:
                 or npc_id.lower() in npc_name.lower()
             ):
                 npc_data = npc
+                matched_npc_id = npc_id
                 break
 
         if not npc_data:
@@ -397,10 +477,39 @@ class GameEngine:
                 narrative_context=f"There's no one called '{npc_name}' here to talk to.",
             )
 
+        # Check if NPC is dead
+        if flags.get(f"npc_{matched_npc_id}_dead"):
+            return ActionResult(
+                action_type=ActionType.TALK,
+                success=False,
+                narrative_context=f"{npc_data.name} is dead.",
+            )
+
+        # Build flag-aware dialogue hints
+        base_hints = list(npc_data.dialogue_hints)
+        dialogue_by_flag = getattr(npc_data, 'dialogue_by_flag', {})
+        for flag_name, hints in dialogue_by_flag.items():
+            if flags.get(flag_name):
+                base_hints.extend(hints)
+
+        # Build rich context for Claude DM
+        context_parts = [
+            f"Player talks to {npc_data.name}",
+            f"Topic: '{topic}'" if topic else "General conversation",
+            f"NPC description: {npc_data.description}",
+            f"Disposition: {npc_data.disposition}",
+            f"Dialogue hints: {'; '.join(base_hints)}",
+            f"NPC knows about: {', '.join(npc_data.knows_about)}" if npc_data.knows_about else "",
+        ]
+        # Include relevant story flags so Claude can adapt
+        relevant_flags = {k: v for k, v in flags.items() if v}
+        if relevant_flags:
+            context_parts.append(f"Story state: {json.dumps(relevant_flags)}")
+
         return ActionResult(
             action_type=ActionType.TALK,
             success=True,
-            narrative_context=f"Player talks to {npc_data.name} about '{topic}'. NPC disposition: {npc_data.disposition}. Dialogue hints: {'; '.join(npc_data.dialogue_hints)}",
+            narrative_context="\n".join(p for p in context_parts if p),
         )
 
     def _handle_attack(self, params: dict) -> ActionResult:
@@ -453,9 +562,9 @@ class GameEngine:
             if target.current_hp <= 0:
                 target.current_hp = 0
                 target.is_alive = False
-                self.db.commit()
 
         self.db.commit()
+        self.db.refresh(target)  # Force re-read so HP is accurate
 
         # Check if all enemies dead
         alive_enemies = [e for e in self.get_combat_entities() if e.is_alive]
@@ -570,12 +679,40 @@ class GameEngine:
         )
 
     def _handle_free_action(self, params: dict) -> ActionResult:
-        """Handle freeform actions - let the AI interpret."""
+        """Handle freeform actions - let the AI interpret with full context."""
         action_text = params.get("text", "")
+        context = self.get_current_scene_context()
+        character = self.get_character()
+
+        # Build rich context so the DM can decide what mechanics apply
+        parts = [f'Player says/does: "{action_text}"']
+        parts.append(f"Current scene: {context.get('name', '?')} — {context.get('scene_type', 'exploration')}")
+
+        if self.session.in_combat:
+            parts.append("Currently in combat!")
+
+        npcs = context.get("npcs", [])
+        if npcs:
+            parts.append(f"NPCs present: {', '.join(n['name'] for n in npcs)}")
+
+        items = context.get("items", [])
+        if items:
+            parts.append(f"Items available: {', '.join(i['name'] for i in items)}")
+
+        if character:
+            skills = json.loads(character.skill_proficiencies)
+            parts.append(f"Character skills: {', '.join(skills)}")
+
+        parts.append(
+            "NOTE: This free action has no mechanical resolution. "
+            "If this action requires a dice roll, use skill_check or attack instead. "
+            "The DM should narrate the attempt and suggest the appropriate follow-up tool call."
+        )
+
         return ActionResult(
             action_type=ActionType.FREE_ACTION,
             success=True,
-            narrative_context=f"Player says/does: \"{action_text}\". Interpret this action within the current scene context.",
+            narrative_context="\n".join(parts),
         )
 
     def _handle_end_turn(self, params: dict) -> ActionResult:
@@ -667,6 +804,7 @@ class GameEngine:
             monster_attacks.append(attack_info)
 
         self.db.commit()
+        self.db.refresh(character)  # Force re-read so HP is accurate
 
         # Build narrative context
         attack_narratives = []
@@ -806,6 +944,17 @@ class GameEngine:
 
         if encounter_flag:
             self.set_flag(encounter_flag)
+
+        # Mark encounter NPCs as dead
+        # Check which NPCs in this scene are linked to encounter monsters
+        if scene:
+            for enc in scene.encounters:
+                if enc.id == encounter_id:
+                    # Mark NPCs killed by this encounter
+                    npcs_killed = getattr(enc, 'npcs_killed', [])
+                    for npc_id in npcs_killed:
+                        self.set_flag(f"npc_{npc_id}_dead")
+                    break
 
         # Award XP
         character = self.get_character()

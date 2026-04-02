@@ -177,6 +177,17 @@ def get_session_state(session_id: int) -> str:
                     lines.append(f"  - {e}")
                 lines.append("  -> Call `start_combat(session_id, encounter_id)` to begin.")
 
+    # State changes
+    state_changes = scene.get("state_changes", [])
+    if state_changes:
+        lines.append("\n**Scene State Changes:**")
+        for change in state_changes:
+            lines.append(f"  - {change}")
+
+    dead = scene.get("dead_npcs", [])
+    if dead:
+        lines.append(f"Dead NPCs: {', '.join(dead)}")
+
     # Character
     if character:
         lines.append(f"\n**Character: {character.get('name', '?')}**")

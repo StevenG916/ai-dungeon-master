@@ -22,7 +22,22 @@
       ],
       "knows_about": ["goblin_raids", "cave_location", "wolf_rumors", "reward"],
       "quest_giver": true,
-      "merchant": false
+      "merchant": false,
+      "dialogue_by_flag": {
+        "chief_defeated": [
+          "Overjoyed and grateful — the goblin threat is ended",
+          "Pays the full 50 gold bounty with a firm handshake",
+          "Offers free room and board for as long as the hero wants"
+        ],
+        "aldric_rescued": [
+          "Relieved the merchant was found alive",
+          "Mentions the merchant's family has been worried sick"
+        ],
+        "lookout_defeated": [
+          "Impressed the hero has already been to the cave",
+          "Asks what they found up there"
+        ]
+      }
     },
     "merchant_sera": {
       "name": "Sera Blackwood",
@@ -35,7 +50,16 @@
         "She thinks there may be prisoners — the goblins took the merchant alive"
       ],
       "knows_about": ["goblin_numbers", "goblin_leader", "prisoners"],
-      "quest_giver": false
+      "quest_giver": false,
+      "dialogue_by_flag": {
+        "chief_defeated": [
+          "Nods with grim satisfaction that the chief is dead",
+          "Says it doesn't bring back the goods but at least the roads will be safe"
+        ],
+        "aldric_rescued": [
+          "Glad the merchant survived — says she'll sleep better knowing that"
+        ]
+      }
     },
     "goblin_lookout": {
       "name": "Snik",
@@ -152,6 +176,7 @@
           ],
           "once": true,
           "sets_flag": "lookout_defeated",
+          "npcs_killed": ["goblin_lookout"],
           "xp_reward": 50,
           "loot": [
             {"name": "Crude Shortbow", "srd_index": "shortbow", "quantity": 1},
@@ -302,6 +327,7 @@
           ],
           "once": true,
           "sets_flag": "chief_defeated",
+          "npcs_killed": ["goblin_chief"],
           "xp_reward": 275,
           "loot": [
             {"name": "Scimitar +1", "quantity": 1},

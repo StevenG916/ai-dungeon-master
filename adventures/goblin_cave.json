@@ -1,0 +1,374 @@
+{
+  "id": "goblin-cave-v1",
+  "name": "The Goblin Cave",
+  "description": "A short introductory adventure. Goblins have been raiding caravans along the Old Road. The local innkeeper begs for help — track the goblins back to their cave and put an end to the raids.",
+  "author": "AI Dungeon Master",
+  "version": "1.0",
+  "level_range": [1, 2],
+  "starting_scene": "village_inn",
+  "intro_narrative": "The village of Millhaven sits at a crossroads along the Old Road, a once-busy trade route now plagued by goblin raids. Three caravans have been hit in the past fortnight. The village elders have pooled their coin to offer a reward to anyone brave enough to track the goblins to their lair and end the threat. You find yourself at the Rusty Tankard inn as evening falls, drawn by word of the bounty.",
+
+  "npcs": {
+    "innkeeper_bram": {
+      "name": "Bram Holloway",
+      "description": "A heavyset man in his fifties with a thick grey beard and kind eyes. He wipes mugs with a stained cloth and looks worried.",
+      "disposition": "friendly",
+      "dialogue_hints": [
+        "Knows the goblins have been hitting caravans on the stretch between the old bridge and the forest edge",
+        "His nephew was injured in the last raid",
+        "Offers a reward of 50 gold for proof the goblins are dealt with",
+        "Has heard wolves howling near the cave — thinks the goblins may have trained them",
+        "Can provide directions to the cave entrance: follow the Old Road east, look for a game trail after the dead oak"
+      ],
+      "knows_about": ["goblin_raids", "cave_location", "wolf_rumors", "reward"],
+      "quest_giver": true,
+      "merchant": false
+    },
+    "merchant_sera": {
+      "name": "Sera Blackwood",
+      "description": "A young woman with dark hair pulled back tight, her arm in a sling. A caravan guard who survived the last raid.",
+      "disposition": "neutral",
+      "dialogue_hints": [
+        "She was guarding a merchant wagon when six goblins ambushed them",
+        "One goblin was bigger than the others and seemed to give orders — had a crude iron crown",
+        "They took all the trade goods and dragged them off toward the forest",
+        "She thinks there may be prisoners — the goblins took the merchant alive"
+      ],
+      "knows_about": ["goblin_numbers", "goblin_leader", "prisoners"],
+      "quest_giver": false
+    },
+    "goblin_lookout": {
+      "name": "Snik",
+      "description": "A scrawny goblin perched behind a rock, picking its teeth with a small bone. It hasn't noticed you yet.",
+      "disposition": "hostile",
+      "monster_index": "goblin"
+    },
+    "goblin_chief": {
+      "name": "Grakthar the Crowned",
+      "description": "A large goblin wearing a crude iron crown hammered from a horseshoe. He sits on a makeshift throne of crates and stolen goods, flanked by two wolf companions.",
+      "disposition": "hostile",
+      "dialogue_hints": [
+        "Will demand tribute if the players try to talk",
+        "Arrogant and overconfident",
+        "Afraid of fire — the cave is dry and flammable"
+      ],
+      "monster_index": "goblin",
+      "knows_about": ["prisoners", "stolen_goods"]
+    },
+    "prisoner_aldric": {
+      "name": "Aldric Thornby",
+      "description": "A bruised and frightened merchant in torn clothing, bound to a wooden post with fraying rope.",
+      "disposition": "fearful",
+      "dialogue_hints": [
+        "Grateful if rescued — will offer a magic ring as reward",
+        "Knows the goblins were planning a bigger raid on the village itself",
+        "Overheard the chief talking about a 'boss' deeper in the mountains"
+      ],
+      "knows_about": ["bigger_raid", "mysterious_boss"]
+    }
+  },
+
+  "scenes": {
+    "village_inn": {
+      "name": "The Rusty Tankard Inn",
+      "description": "A warm, low-ceilinged tavern smelling of woodsmoke and stew. A fire crackles in the stone hearth. A few locals nurse their drinks quietly, casting nervous glances at the door. The innkeeper stands behind the bar, polishing mugs.",
+      "ai_notes": "This is a safe social scene. The mood is tense but hopeful — the villagers are scared but glad someone is here to help. Let the player talk to NPCs and gather information before heading out.",
+      "scene_type": "social",
+      "lighting": "normal",
+      "npcs": ["innkeeper_bram", "merchant_sera"],
+      "exits": [
+        {
+          "target_scene": "old_road",
+          "description": "The front door leads out to the village square and the Old Road heading east.",
+          "direction": "outside"
+        }
+      ],
+      "items": [],
+      "encounters": [],
+      "events": [
+        {
+          "id": "quest_given",
+          "description": "Bram approaches the player to explain the goblin situation and offer the bounty.",
+          "trigger": "on_enter",
+          "sets_flag": "quest_accepted",
+          "once": true,
+          "narrative": "As you settle onto a barstool, the innkeeper leans in close. His voice is low and urgent."
+        }
+      ],
+      "rest_allowed": true
+    },
+
+    "old_road": {
+      "name": "The Old Road",
+      "description": "A packed-dirt road winding east through farmland toward the dark tree line of Briarwood Forest. The road is rutted from cart wheels. About a mile along, a massive dead oak stands beside the road, its branches bare and bleached white. A narrow game trail disappears into the underbrush nearby.",
+      "ai_notes": "Transition scene. The player should find the trail to the cave easily. An optional Survival or Perception check (DC 10) can reveal goblin tracks confirming the trail is correct. Make the forest feel foreboding as they approach.",
+      "scene_type": "exploration",
+      "lighting": "normal",
+      "npcs": [],
+      "exits": [
+        {
+          "target_scene": "village_inn",
+          "description": "The road leads back west to Millhaven.",
+          "direction": "west"
+        },
+        {
+          "target_scene": "cave_entrance",
+          "description": "A narrow game trail leads into the forest near the dead oak.",
+          "direction": "trail"
+        }
+      ],
+      "items": [],
+      "encounters": [],
+      "events": []
+    },
+
+    "cave_entrance": {
+      "name": "Cave Entrance",
+      "description": "The trail ends at a rocky hillside where a dark cave mouth gapes open, roughly ten feet wide and eight feet tall. The ground is trampled with small footprints. The stench of wet animal and garbage drifts from within. A trickle of water runs out of the cave along one wall.",
+      "ai_notes": "The lookout goblin is perched on a rock ledge about 20 feet from the entrance. A Stealth check (DC 12) lets the player approach without being noticed. If the goblin spots them, it screams an alarm (sets alarm_raised flag). Perception DC 13 to spot the goblin before getting close.",
+      "scene_type": "exploration",
+      "lighting": "dim",
+      "npcs": ["goblin_lookout"],
+      "exits": [
+        {
+          "target_scene": "old_road",
+          "description": "The game trail leads back to the Old Road.",
+          "direction": "back"
+        },
+        {
+          "target_scene": "cave_tunnel",
+          "description": "The cave mouth opens into a dark tunnel leading deeper underground.",
+          "direction": "inside"
+        }
+      ],
+      "items": [],
+      "encounters": [
+        {
+          "id": "lookout_fight",
+          "description": "Snik the goblin lookout attacks! If the alarm was raised, he fights desperately knowing help might come.",
+          "trigger": "manual",
+          "monsters": [
+            {"srd_index": "goblin", "count": 1, "name_override": "Snik the Lookout"}
+          ],
+          "once": true,
+          "sets_flag": "lookout_defeated",
+          "xp_reward": 50,
+          "loot": [
+            {"name": "Crude Shortbow", "srd_index": "shortbow", "quantity": 1},
+            {"name": "3 Silver Pieces", "quantity": 3}
+          ]
+        }
+      ],
+      "events": []
+    },
+
+    "cave_tunnel": {
+      "name": "The Dark Tunnel",
+      "description": "A rough natural tunnel about five feet wide, sloping gently downward. The walls are damp and the air is cold. Faint sounds echo from deeper within — dripping water and occasional scratching noises. The tunnel splits ahead: one passage continues straight, the other branches left.",
+      "ai_notes": "Simple navigation choice. The left passage leads to the wolf pen (optional/dangerous). Straight ahead leads to the main cavern. If the alarm was raised, a goblin patrol of 2 goblins is in the tunnel.",
+      "scene_type": "exploration",
+      "lighting": "dark",
+      "npcs": [],
+      "exits": [
+        {
+          "target_scene": "cave_entrance",
+          "description": "The tunnel slopes back up toward the cave entrance.",
+          "direction": "back"
+        },
+        {
+          "target_scene": "wolf_pen",
+          "description": "A left passage branches off. You hear low growling from within.",
+          "direction": "left"
+        },
+        {
+          "target_scene": "main_cavern",
+          "description": "The main tunnel continues straight ahead. Flickering light is visible in the distance.",
+          "direction": "forward"
+        }
+      ],
+      "items": [
+        {
+          "name": "Healer's Kit",
+          "description": "A small leather pouch tucked into a crack in the wall, containing bandages and herbal salves.",
+          "srd_index": "healers-kit",
+          "hidden": true,
+          "search_dc": 12,
+          "quantity": 1
+        }
+      ],
+      "encounters": [
+        {
+          "id": "tunnel_patrol",
+          "description": "Two goblins on patrol round the corner, torches in hand!",
+          "trigger": "on_flag",
+          "trigger_flag": "alarm_raised",
+          "monsters": [
+            {"srd_index": "goblin", "count": 2}
+          ],
+          "once": true,
+          "sets_flag": "tunnel_patrol_defeated",
+          "xp_reward": 100
+        }
+      ],
+      "events": []
+    },
+
+    "wolf_pen": {
+      "name": "The Wolf Pen",
+      "description": "A small cavern reeking of animal musk and raw meat. Two large wolves are chained to iron stakes driven into the stone floor. They snarl and pull at their chains as you enter. Scraps of meat and gnawed bones litter the ground.",
+      "ai_notes": "The wolves are chained and can't reach the middle of the room. An Animal Handling check (DC 15) can calm them. If calmed, they won't attack even if freed. If the player attacks at range, the wolves can't fight back. A nature check (DC 10) reveals the chains are old and rusted — could be broken easily. This is an optional scene that tests whether the player is merciful or practical.",
+      "scene_type": "exploration",
+      "lighting": "dark",
+      "npcs": [],
+      "exits": [
+        {
+          "target_scene": "cave_tunnel",
+          "description": "The passage leads back to the main tunnel.",
+          "direction": "back"
+        }
+      ],
+      "items": [
+        {
+          "name": "Potion of Healing",
+          "description": "A small glass vial with a glowing red liquid, sitting on a rough stone shelf.",
+          "srd_index": "potion-of-healing",
+          "hidden": false,
+          "quantity": 1
+        }
+      ],
+      "encounters": [
+        {
+          "id": "wolf_fight",
+          "description": "The wolves lunge and snap, straining at their chains!",
+          "trigger": "manual",
+          "monsters": [
+            {"srd_index": "wolf", "count": 2}
+          ],
+          "once": true,
+          "sets_flag": "wolves_dealt_with",
+          "xp_reward": 100
+        }
+      ],
+      "events": []
+    },
+
+    "main_cavern": {
+      "name": "The Goblin Throne Room",
+      "description": "The tunnel opens into a large cavern roughly forty feet across, lit by smoky torches jammed into cracks in the walls. Stolen crates and barrels are stacked against the far wall. In the center, Grakthar the goblin chief sits on a throne cobbled together from merchant crates, wearing a crude iron crown. Two goblins flank him. In the back corner, a bruised human merchant is tied to a wooden post.",
+      "ai_notes": "This is the climactic scene. The chief is arrogant and will taunt the player. If the player tries diplomacy, the chief demands they kneel and pay tribute (100 gold). Combat is the likely outcome. If the alarm was raised, there are 3 additional goblins here instead of 2. The prisoner Aldric can be freed during or after combat (DC 10 to cut ropes, or just use a blade). The stolen goods are here and can be returned to the village for extra reward.",
+      "scene_type": "combat",
+      "lighting": "dim",
+      "npcs": ["goblin_chief", "prisoner_aldric"],
+      "exits": [
+        {
+          "target_scene": "cave_tunnel",
+          "description": "The tunnel leads back toward the entrance.",
+          "direction": "back"
+        },
+        {
+          "target_scene": "hidden_passage",
+          "description": "Behind the throne, a narrow crack in the wall conceals a passage.",
+          "direction": "hidden passage",
+          "hidden": true,
+          "search_dc": 15
+        }
+      ],
+      "items": [
+        {
+          "name": "Stolen Trade Goods",
+          "description": "Crates of cloth, spices, and tools — clearly looted from merchant caravans.",
+          "hidden": false,
+          "quantity": 1,
+          "sets_flag": "recovered_goods"
+        },
+        {
+          "name": "Iron Crown",
+          "description": "Grakthar's crude crown, hammered from a horseshoe. Proof of the goblin chief's defeat.",
+          "hidden": false,
+          "quantity": 1,
+          "requires_flag": "chief_defeated",
+          "sets_flag": "has_crown"
+        }
+      ],
+      "encounters": [
+        {
+          "id": "boss_fight",
+          "description": "Grakthar leaps from his throne, scimitar drawn, and shrieks a war cry. His goblin guards rush forward!",
+          "trigger": "manual",
+          "monsters": [
+            {"srd_index": "goblin", "count": 1, "name_override": "Grakthar the Crowned", "hp_override": 14},
+            {"srd_index": "goblin", "count": 2, "name_override": "Goblin Guard"},
+            {"srd_index": "wolf", "count": 1, "name_override": "Grakthar's War Wolf"}
+          ],
+          "once": true,
+          "sets_flag": "chief_defeated",
+          "xp_reward": 275,
+          "loot": [
+            {"name": "Scimitar +1", "quantity": 1},
+            {"name": "50 Gold Pieces", "quantity": 50}
+          ]
+        }
+      ],
+      "events": [
+        {
+          "id": "rescue_aldric",
+          "description": "Aldric is freed from his bonds.",
+          "trigger": "on_flag",
+          "trigger_flag": "chief_defeated",
+          "sets_flag": "aldric_rescued",
+          "once": true,
+          "narrative": "With the goblins defeated, the merchant looks up at you with tear-filled eyes."
+        }
+      ],
+      "rest_allowed": false
+    },
+
+    "hidden_passage": {
+      "name": "The Hidden Stash",
+      "description": "A narrow natural crevice barely wide enough to squeeze through opens into a tiny chamber. The goblins clearly used this as a personal treasury. A small locked chest sits against the wall, along with some scattered coins and a rolled-up piece of parchment.",
+      "ai_notes": "This is a secret bonus room. The chest requires a DC 14 Thieves' Tools check or DC 18 Strength check to open. The parchment is a crude map hinting at the 'boss' the goblins serve — a hook for a sequel adventure. Let the player feel rewarded for exploring thoroughly.",
+      "scene_type": "exploration",
+      "lighting": "dark",
+      "npcs": [],
+      "exits": [
+        {
+          "target_scene": "main_cavern",
+          "description": "The narrow crack leads back to the main cavern.",
+          "direction": "back"
+        }
+      ],
+      "items": [
+        {
+          "name": "Locked Chest",
+          "description": "A small iron-bound chest with a rusty lock.",
+          "hidden": false,
+          "quantity": 1,
+          "sets_flag": "opened_chest"
+        },
+        {
+          "name": "Ring of Protection",
+          "description": "A simple silver band that glows faintly. Grants +1 AC when worn.",
+          "srd_index": "ring-of-protection",
+          "hidden": false,
+          "quantity": 1,
+          "requires_flag": "opened_chest"
+        },
+        {
+          "name": "Mysterious Map",
+          "description": "A crude map drawn on leather scraps showing mountain passes and an X marked 'Big Boss Lair' in goblin script.",
+          "hidden": false,
+          "quantity": 1,
+          "sets_flag": "found_map"
+        },
+        {
+          "name": "Scattered Coins",
+          "description": "A handful of coins scattered on the ground — 23 gold, 45 silver.",
+          "hidden": false,
+          "quantity": 1
+        }
+      ],
+      "encounters": [],
+      "events": []
+    }
+  }
+}

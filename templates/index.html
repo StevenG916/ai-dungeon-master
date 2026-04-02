@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dungeon Master</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Landing / Character Select -->
+        <div id="screen-landing" class="screen active">
+            <div class="landing-header">
+                <h1>AI Dungeon Master</h1>
+                <p class="subtitle">5th Edition Solo Adventures</p>
+            </div>
+
+            <div class="panel">
+                <h2>Your Characters</h2>
+                <div id="character-list"></div>
+                <button onclick="showScreen('screen-create')" class="btn btn-primary">Create New Character</button>
+            </div>
+
+            <div class="panel" id="adventure-panel" style="display:none">
+                <h2>Choose an Adventure</h2>
+                <div id="adventure-list"></div>
+            </div>
+        </div>
+
+        <!-- Character Creation -->
+        <div id="screen-create" class="screen">
+            <h2>Create Your Character</h2>
+            <button onclick="showScreen('screen-landing')" class="btn btn-small">← Back</button>
+
+            <div class="creation-flow">
+                <!-- Step 1: Name & Race -->
+                <div class="creation-step" id="step-1">
+                    <h3>Name & Race</h3>
+                    <div class="form-group">
+                        <label>Character Name</label>
+                        <input type="text" id="char-name" placeholder="Enter a name..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Race</label>
+                        <div id="race-options" class="option-grid"></div>
+                    </div>
+                    <button onclick="creationStep2()" class="btn btn-primary">Next →</button>
+                </div>
+
+                <!-- Step 2: Class -->
+                <div class="creation-step" id="step-2" style="display:none">
+                    <h3>Class</h3>
+                    <div id="class-options" class="option-grid"></div>
+                    <button onclick="creationStep3()" class="btn btn-primary">Next →</button>
+                </div>
+
+                <!-- Step 3: Ability Scores -->
+                <div class="creation-step" id="step-3" style="display:none">
+                    <h3>Ability Scores</h3>
+                    <div class="score-method">
+                        <button onclick="rollScores()" class="btn">Roll 4d6 Drop Lowest</button>
+                        <button onclick="useStandardArray()" class="btn">Standard Array</button>
+                    </div>
+                    <div id="ability-assignment"></div>
+                    <button onclick="creationStep4()" class="btn btn-primary">Next →</button>
+                </div>
+
+                <!-- Step 4: Skills & Finalize -->
+                <div class="creation-step" id="step-4" style="display:none">
+                    <h3>Skill Proficiencies</h3>
+                    <div id="skill-options"></div>
+                    <div id="character-preview" class="panel"></div>
+                    <button onclick="finalizeCharacter()" class="btn btn-primary">Create Character!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Play -->
+        <div id="screen-play" class="screen">
+            <div class="game-layout">
+                <!-- Sidebar: Character Sheet -->
+                <div class="sidebar">
+                    <div class="char-sheet" id="char-sheet">
+                        <h3 id="cs-name">Character</h3>
+                        <div class="cs-identity">
+                            <span id="cs-race-class"></span>
+                            <span id="cs-level"></span>
+                        </div>
+                        <div class="cs-vitals">
+                            <div class="vital">
+                                <span class="vital-label">HP</span>
+                                <span class="vital-value" id="cs-hp">-/-</span>
+                                <div class="hp-bar"><div class="hp-fill" id="cs-hp-bar"></div></div>
+                            </div>
+                            <div class="vital">
+                                <span class="vital-label">AC</span>
+                                <span class="vital-value" id="cs-ac">-</span>
+                            </div>
+                        </div>
+                        <div class="cs-abilities" id="cs-abilities"></div>
+                    </div>
+
+                    <!-- Scene Info -->
+                    <div class="scene-info" id="scene-info">
+                        <h4 id="scene-name">Scene</h4>
+                        <div id="scene-exits"></div>
+                        <div id="scene-npcs"></div>
+                    </div>
+
+                    <!-- Combat Panel -->
+                    <div class="combat-panel" id="combat-panel" style="display:none">
+                        <h4>Combat</h4>
+                        <div id="combat-enemies"></div>
+                        <div id="combat-initiative"></div>
+                    </div>
+                </div>
+
+                <!-- Main Area: Narrative + Actions -->
+                <div class="main-area">
+                    <div class="narrative-log" id="narrative-log"></div>
+
+                    <!-- Action Bar -->
+                    <div class="action-bar">
+                        <div class="action-buttons" id="action-buttons">
+                            <button onclick="doAction('look', {})" class="btn btn-action">Look Around</button>
+                            <button onclick="doAction('search', {skill:'perception'})" class="btn btn-action">Search</button>
+                        </div>
+                        <div class="action-input">
+                            <input type="text" id="action-text" placeholder="What do you do? (or type a command...)" />
+                            <button onclick="submitFreeAction()" class="btn btn-primary" id="btn-submit">Do It</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/game.js"></script>
+</body>
+</html>

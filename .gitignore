@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+game.db
+server.log
+.env
+5e-database/
+venv/
+.venv/
